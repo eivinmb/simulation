@@ -18,7 +18,9 @@ def draw_environment(ax, environment):
     )
 
 
-def animate(setup_file, dt=0.01, duration=20.0, fps=30):
+def animate(
+    setup_file, dt=0.01, duration=20.0, fps=30, title="Ground-amphibious robots"
+):
     agents, environment = initialize_simulation(setup_file)
 
     fig, ax = plt.subplots()
@@ -31,6 +33,7 @@ def animate(setup_file, dt=0.01, duration=20.0, fps=30):
     ax.set_aspect("equal")
     ax.set_xlabel("x")
     ax.set_ylabel("y")
+    ax.set_title(title)
 
     trails = {}
     markers = {}
@@ -41,7 +44,8 @@ def animate(setup_file, dt=0.01, duration=20.0, fps=30):
         (trails[agent.name],) = ax.plot([], [], "-", lw=1, color=color)
         ax.plot(*agent.goal_position, "x", color=color)
         tracks[agent.name] = [agent.position.copy()]
-    ax.legend(loc="upper left")
+    ax.legend(loc="best")
+    time_text = ax.text(0.98, 0.04, "", transform=ax.transAxes, ha="right")
 
     # The physics step is smaller than a frame, so take several steps per frame
     # and pause for as long as those steps represent. That keeps the animation
@@ -49,6 +53,7 @@ def animate(setup_file, dt=0.01, duration=20.0, fps=30):
     steps_per_frame = max(1, round(1.0 / (fps * dt)))
     frames = int(duration / (dt * steps_per_frame))
 
+    t = 0.0
     for _ in range(frames):
         for _ in range(steps_per_frame):
             for agent in agents:
@@ -58,6 +63,8 @@ def animate(setup_file, dt=0.01, duration=20.0, fps=30):
             track = np.array(tracks[agent.name])
             trails[agent.name].set_data(track[:, 0], track[:, 1])
             markers[agent.name].set_data([agent.position[0]], [agent.position[1]])
+        t += steps_per_frame * dt
+        time_text.set_text(f"t = {t:.1f} s")
         plt.pause(steps_per_frame * dt)
 
     plt.show()
