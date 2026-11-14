@@ -1,31 +1,17 @@
 {
-  "simulation_name": "Egersted Paperet",
-  "simulation_description": "A simulation of a hare and a turtle racing to a goal, with different terrain types affecting their movement.",
-  "simulation_parameters": {
-    "time_step": 0.1,
-    "max_time": 20
-  },
   "agents": ["hare", "turtle"],
   "hare": {
-    "initial_position": [0, 0],
+    "initial_position": [-5, 0],
     "initial_velocity": 2,
-    "initial_angle": 0,
-    "goal_position": [10, 0], 
-    "agent_type": "ground"
+    "goal_position": [5, 0]
   },
   "turtle": {
-    "initial_position": [0, 0],
+    "initial_position": [-5, -2],
     "initial_velocity": 1,
-    "initial_angle": 0,
-    "goal_position": [10, 0],
-    "agent_type": "amphibious"
+    "goal_position": [5, -2]
   },
   "environment": {
     "default": "ground",
-    "water": {"x": 5, "y": 0, "width": 10, "height": 10}
-  },
-  "safe_zone": {
-    "amphibious": {"ground":1, "water":1},
-    "ground": {"ground":1, "water":0 }
+    "water": {"center": 0, "width": 4}
   }
 }

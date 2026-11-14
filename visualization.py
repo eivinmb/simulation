@@ -6,26 +6,28 @@ from setup import initialize_simulation
 
 
 def draw_environment(ax, environment):
+    # The water is a strip of width l_R centred on the origin, as in the paper.
+    # It spans the whole height of the plot, so y never enters the geometry.
     water = environment["water"]
-    ax.add_patch(
-        plt.Rectangle(
-            (water["x"], water["y"]),
-            water["width"],
-            water["height"],
-            color="tab:blue",
-            alpha=0.3,
-        )
+    half_width = water["width"] / 2
+    ax.axvspan(
+        water["center"] - half_width,
+        water["center"] + half_width,
+        color="tab:blue",
+        alpha=0.3,
     )
-    return water
 
 
 def animate(setup_file, dt=0.01, duration=20.0, fps=30):
     agents, environment = initialize_simulation(setup_file)
 
     fig, ax = plt.subplots()
-    water = draw_environment(ax, environment)
-    ax.set_xlim(min(0.0, water["x"]) - 1, water["x"] + water["width"] + 1)
-    ax.set_ylim(water["y"] - 1, water["y"] + water["height"] + 1)
+    draw_environment(ax, environment)
+    corners = [agent.position for agent in agents]
+    corners += [agent.goal_position for agent in agents]
+    corners = np.array(corners)
+    ax.set_xlim(corners[:, 0].min() - 1, corners[:, 0].max() + 1)
+    ax.set_ylim(corners[:, 1].min() - 1, corners[:, 1].max() + 1)
     ax.set_aspect("equal")
     ax.set_xlabel("x")
     ax.set_ylabel("y")
