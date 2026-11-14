@@ -1,9 +1,9 @@
 {
   "agents": ["hare", "turtle"],
   "hare": {
-    "initial_position": [-5, 0],
+    "initial_position": [5, 0],
     "initial_velocity": 2,
-    "goal_position": [5, 0]
+    "goal_position": [-5, 0]
   },
   "turtle": {
     "initial_position": [-5, -2],
