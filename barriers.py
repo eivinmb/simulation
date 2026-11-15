@@ -4,52 +4,74 @@ import sympy
 COORDINATES = ("x", "y")
 
 
-def environment_constants(environment, prefix=""):
-    # Flatten the environment into names an expression can use, so the geometry
-    # has one home: {"water": {"center": 0, "width": 4}} becomes water_center
-    # and water_width.
-    constants = {}
-    for key, value in environment.items():
-        name = f"{prefix}{key}"
-        if isinstance(value, dict):
-            constants.update(environment_constants(value, prefix=f"{name}_"))
-        elif isinstance(value, (int, float)):
-            constants[name] = float(value)
-    return constants
+def strip(region, symbols):
+    # A band of the given width centred on "center" along "axis". The paper's
+    # water: h = (p_axis - c)^2 - (l_R/2)^2, positive outside the band.
+    axis = symbols[COORDINATES.index(region.get("axis", "x"))]
+    return (axis - region["center"]) ** 2 - (region["width"] / 2) ** 2
 
 
-def make_barrier(expression, environment):
-    # A barrier is written in the setup file as an expression in the position
-    # coordinates plus any constant from the environment, and differentiated
-    # symbolically. A new barrier therefore needs no code at all:
+def disc(region, symbols):
+    # A circle of the given radius about "center". Positive outside it.
+    squared = sum((s - c) ** 2 for s, c in zip(symbols, region["center"]))
+    return squared - region["radius"] ** 2
+
+
+SHAPES = {"strip": strip, "disc": disc}
+
+
+def region_expression(name, environment, symbols):
+    if name not in environment:
+        raise ValueError(f"unknown region {name!r}, expected one of {sorted(environment)}")
+    region = environment[name]
+    shape = region["shape"]
+    if shape not in SHAPES:
+        raise ValueError(f"unknown shape {shape!r}, expected one of {sorted(SHAPES)}")
+    return SHAPES[shape](region, symbols)
+
+
+def make_barrier(unsafe_in, environment):
+    # An agent's barrier is built from the regions it cannot enter. Each region
+    # contributes an expression that is positive outside it, and the agent is
+    # safe only outside every one of them, so the barrier is their minimum.
     #
-    #   "(x - water_center)**2 - (water_width/2)**2"   the paper's hare
-    #   "0"                                            the identity CBF
-    #
-    # Safety is h >= 0, so the expression is positive where the agent is safe.
+    # Minimum is conjunction. The paper rejects it for *collaborative* terms,
+    # because a conjunction can never expand a safe set, but for independent
+    # hazards it is the right operator: two dangers must not cancel each other.
+    # It is not smooth, so the gradient below is the active region's -- the
+    # usual subgradient choice, and exactly the non-smoothness the paper cites.
     symbols = sympy.symbols(COORDINATES)
-    expr = sympy.sympify(str(expression)).subs(environment_constants(environment))
-
-    unknown = sorted(str(s) for s in expr.free_symbols if s not in symbols)
-    if unknown:
-        raise ValueError(f"barrier {expression!r} uses unknown names {unknown}")
-
-    h_func = sympy.lambdify(symbols, expr, "numpy")
-    grad_func = sympy.lambdify(symbols, [sympy.diff(expr, s) for s in symbols], "numpy")
+    regions = []
+    for name in unsafe_in:
+        expr = region_expression(name, environment, symbols)
+        regions.append(
+            (
+                sympy.lambdify(symbols, expr, "numpy"),
+                sympy.lambdify(symbols, [sympy.diff(expr, s) for s in symbols], "numpy"),
+            )
+        )
 
     def h(position):
-        return float(h_func(*position))
+        # No regions means safe everywhere: the paper's identity CBF, h = 0.
+        # Zero and not one, because safety is non-negativity, not positivity,
+        # and zero is the identity element for addition.
+        if not regions:
+            return 0.0
+        return min(float(value(*position)) for value, _ in regions)
 
     def grad_h(position):
-        return np.array(grad_func(*position), dtype=float)
+        if not regions:
+            return np.zeros(len(COORDINATES))
+        values = [float(value(*position)) for value, _ in regions]
+        active = int(np.argmin(values))
+        return np.array(regions[active][1](*position), dtype=float)
 
     return h, grad_h
 
 
 def gradient_error(h, grad_h, position, eps=1e-6):
     # Central difference against the symbolic gradient. The derivative itself
-    # is exact; this checks that substitution and lambdify did what they look
-    # like they did.
+    # is exact; this checks that lambdify did what it looks like it did.
     position = np.asarray(position, dtype=float)
     numerical = np.zeros_like(position)
     for i in range(position.size):
@@ -68,10 +90,9 @@ if __name__ == "__main__":
         setup_data = json.load(f)
 
     probes = [[-5.0, 0.0], [-2.0, 0.0], [0.0, 0.0], [2.0, 0.0], [3.0, 1.0]]
-    print("constants", environment_constants(setup_data["environment"]))
     for name in setup_data["agents"]:
-        expression = setup_data[name]["barrier"]
-        h, grad_h = make_barrier(expression, setup_data["environment"])
+        unsafe_in = setup_data[name]["unsafe_in"]
+        h, grad_h = make_barrier(unsafe_in, setup_data["environment"])
         worst = max(gradient_error(h, grad_h, p) for p in probes)
         values = "  ".join(f"h({p[0]:+.0f})={h(p):+6.1f}" for p in probes)
-        print(f"{name:7} {values}   max gradient error {worst:.1e}   {expression!r}")
+        print(f"{name:7} {values}   max gradient error {worst:.1e}   unsafe_in={unsafe_in}")

@@ -23,7 +23,7 @@ def load_agents(setup_data):
                 position=spec["initial_position"],
                 goal_position=spec["goal_position"],
                 max_speed=spec["initial_velocity"],
-                barrier=make_barrier(spec["barrier"], environment),
+                barrier=make_barrier(spec["unsafe_in"], environment),
             )
         )
     return agents

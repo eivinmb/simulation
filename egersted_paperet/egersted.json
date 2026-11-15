@@ -11,16 +11,16 @@
     "initial_position": [5, 0],
     "initial_velocity": 2,
     "goal_position": [-5, 0],
-    "barrier": "(x - water_center)**2 - (water_width/2)**2"
+    "unsafe_in": ["water"]
   },
   "turtle": {
     "initial_position": [-5, -2],
     "initial_velocity": 1,
     "goal_position": [5, -2],
-    "barrier": "0"
+    "unsafe_in": []
   },
   "environment": {
     "default": "ground",
-    "water": {"center": 0, "width": 4}
+    "water": {"shape": "strip", "axis": "x", "center": 0, "width": 4}
   }
 }
