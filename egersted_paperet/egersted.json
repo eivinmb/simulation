@@ -10,12 +10,14 @@
   "hare": {
     "initial_position": [5, 0],
     "initial_velocity": 2,
-    "goal_position": [-5, 0]
+    "goal_position": [-5, 0],
+    "barrier": "water_strip"
   },
   "turtle": {
     "initial_position": [-5, -2],
     "initial_velocity": 1,
-    "goal_position": [5, -2]
+    "goal_position": [5, -2],
+    "barrier": "none"
   },
   "environment": {
     "default": "ground",

@@ -1,6 +1,7 @@
 import json
 
 from agent import Agent
+from barriers import make_barrier
 
 
 def read_setup_file(setup_file):
@@ -10,6 +11,7 @@ def read_setup_file(setup_file):
 
 
 def load_agents(setup_data):
+    environment = setup_data["environment"]
     agents = []
     for name in setup_data["agents"]:
         spec = setup_data[name]
@@ -21,6 +23,7 @@ def load_agents(setup_data):
                 position=spec["initial_position"],
                 goal_position=spec["goal_position"],
                 max_speed=spec["initial_velocity"],
+                barrier=make_barrier(spec["barrier"], environment),
             )
         )
     return agents
