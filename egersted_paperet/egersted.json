@@ -8,6 +8,7 @@
     "gamma": 100.0,
     "show_barriers": true
   },
+  
   "agents": ["hare", "turtle"],
   "hare": {
     "initial_position": [5, 0],
@@ -16,6 +17,7 @@
     "max_speed": 3,
     "unsafe_in": ["water"]
   },
+
   "turtle": {
     "initial_position": [-5, -2],
     "initial_speed": 0,
@@ -23,6 +25,10 @@
     "max_speed": 2,
     "unsafe_in": []
   },
+
+  "collaborations": [
+  {"rider": "hare", "carrier": "turtle", "mount_radius": 0.5}],
+
   "environment": {
     "default": "ground",
     "water": {"shape": "strip", "axis": "x", "center": 0, "width": 4, "color": "tab:blue"}
