@@ -21,7 +21,13 @@ def nominal_velocity(agent, gain):
 def filtered_velocity(agent, gain, gamma):
     # The nominal controller wants the goal and ignores safety. The QP hands
     # back the closest input that keeps h from falling faster than allowed.
-    return qp(nominal_velocity(agent, gain), agent.h(), agent.grad_h(), gamma)
+    return qp(
+        nominal_velocity(agent, gain),
+        agent.h(),
+        agent.grad_h(),
+        gamma,
+        agent.max_speed,
+    )
 
 
 def run(setup_file):
