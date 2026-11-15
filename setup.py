@@ -27,7 +27,9 @@ def load_agents(setup_data):
 
 
 def initialize_simulation(setup_file):
+    # The whole setup file is handed back, not just the agents: the run
+    # parameters, the environment and the title all live in it, so nothing
+    # downstream needs a default of its own.
     setup_data = read_setup_file(setup_file)
     agents = load_agents(setup_data)
-    environment = setup_data["environment"]
-    return agents, environment
+    return agents, setup_data

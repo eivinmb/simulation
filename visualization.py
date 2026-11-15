@@ -1,7 +1,9 @@
+import sys
+
 import matplotlib.pyplot as plt
 import numpy as np
 
-from run_simulation import nominal_velocity
+from run_simulation import DEFAULT_SETUP, nominal_velocity
 from setup import initialize_simulation
 
 
@@ -18,13 +20,15 @@ def draw_environment(ax, environment):
     )
 
 
-def animate(
-    setup_file, dt=0.01, duration=20.0, fps=30, title="Ground-amphibious robots"
-):
-    agents, environment = initialize_simulation(setup_file)
+def animate(setup_file):
+    agents, setup_data = initialize_simulation(setup_file)
+    simulation = setup_data["simulation"]
+    dt = simulation["dt"]
+    fps = simulation["fps"]
+    gain = simulation["gain"]
 
     fig, ax = plt.subplots()
-    draw_environment(ax, environment)
+    draw_environment(ax, setup_data["environment"])
     corners = [agent.position for agent in agents]
     corners += [agent.goal_position for agent in agents]
     corners = np.array(corners)
@@ -33,7 +37,7 @@ def animate(
     ax.set_aspect("equal")
     ax.set_xlabel("x")
     ax.set_ylabel("y")
-    ax.set_title(title)
+    ax.set_title(setup_data["title"])
 
     trails = {}
     markers = {}
@@ -51,13 +55,13 @@ def animate(
     # and pause for as long as those steps represent. That keeps the animation
     # close to real time without tying the integration to the screen refresh.
     steps_per_frame = max(1, round(1.0 / (fps * dt)))
-    frames = int(duration / (dt * steps_per_frame))
+    frames = int(simulation["duration"] / (dt * steps_per_frame))
 
     t = 0.0
     for _ in range(frames):
         for _ in range(steps_per_frame):
             for agent in agents:
-                agent.step(nominal_velocity(agent), dt)
+                agent.step(nominal_velocity(agent, gain), dt)
                 tracks[agent.name].append(agent.position.copy())
         for agent in agents:
             track = np.array(tracks[agent.name])
@@ -71,4 +75,4 @@ def animate(
 
 
 if __name__ == "__main__":
-    animate("egersted_paperet/egersted.json")
+    animate(sys.argv[1] if len(sys.argv) > 1 else DEFAULT_SETUP)
