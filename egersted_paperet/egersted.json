@@ -1,4 +1,11 @@
 {
+  "title": "Ground-amphibious robots",
+  "simulation": {
+    "dt": 0.01,
+    "duration": 20.0,
+    "fps": 30,
+    "gain": 1.0
+  },
   "agents": ["hare", "turtle"],
   "hare": {
     "initial_position": [5, 0],
