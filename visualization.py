@@ -1,6 +1,7 @@
 import sys
 
 import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
 import numpy as np
 
 from run_simulation import DEFAULT_SETUP, filtered_velocity
@@ -23,7 +24,7 @@ def draw_region(ax, region):
         )
     elif shape == "disc":
         ax.add_patch(
-            plt.Circle(
+            Circle(
                 region["center"], region["radius"], color=color, alpha=0.3
             )
         )
