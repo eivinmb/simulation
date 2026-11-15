@@ -11,13 +11,13 @@
   "agents": ["hare", "turtle"],
   "hare": {
     "initial_position": [5, 0],
-    "initial_velocity": 2,
+    "initial_speed": 0,
     "goal_position": [-5, 0],
     "unsafe_in": ["water"]
   },
   "turtle": {
     "initial_position": [-5, -2],
-    "initial_velocity": 1,
+    "initial_speed": 0,
     "goal_position": [5, -2],
     "unsafe_in": []
   },
