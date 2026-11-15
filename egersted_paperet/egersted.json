@@ -13,12 +13,14 @@
     "initial_position": [5, 0],
     "initial_speed": 0,
     "goal_position": [-5, 0],
+    "max_speed": 3,
     "unsafe_in": ["water"]
   },
   "turtle": {
     "initial_position": [-5, -2],
     "initial_speed": 0,
     "goal_position": [5, -2],
+    "max_speed": 2,
     "unsafe_in": []
   },
   "environment": {
