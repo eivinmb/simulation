@@ -7,17 +7,33 @@ from run_simulation import DEFAULT_SETUP, nominal_velocity
 from setup import initialize_simulation
 
 
+def draw_region(ax, region):
+    # Drawn from the same shape the barrier is built from, so the picture and
+    # the constraint cannot drift apart.
+    color = region.get("color", "tab:blue")
+    shape = region["shape"]
+    if shape == "strip":
+        half_width = region["width"] / 2
+        span = ax.axvspan if region.get("axis", "x") == "x" else ax.axhspan
+        span(
+            region["center"] - half_width,
+            region["center"] + half_width,
+            color=color,
+            alpha=0.3,
+        )
+    elif shape == "disc":
+        ax.add_patch(
+            plt.Circle(
+                region["center"], region["radius"], color=color, alpha=0.3
+            )
+        )
+
+
 def draw_environment(ax, environment):
-    # The water is a strip of width l_R centred on the origin, as in the paper.
-    # It spans the whole height of the plot, so y never enters the geometry.
-    water = environment["water"]
-    half_width = water["width"] / 2
-    ax.axvspan(
-        water["center"] - half_width,
-        water["center"] + half_width,
-        color="tab:blue",
-        alpha=0.3,
-    )
+    # Anything in the environment carrying a shape is a region worth drawing.
+    for region in environment.values():
+        if isinstance(region, dict) and "shape" in region:
+            draw_region(ax, region)
 
 
 def animate(setup_file):
@@ -27,9 +43,15 @@ def animate(setup_file):
     fps = simulation["fps"]
     gain = simulation["gain"]
 
-    fig, (ax, ax_h) = plt.subplots(
-        2, 1, figsize=(7, 7), height_ratios=[2, 1], constrained_layout=True
-    )
+    show_barriers = simulation.get("show_barriers", True)
+    if show_barriers:
+        fig, (ax, ax_h) = plt.subplots(
+            2, 1, figsize=(7, 7), height_ratios=[2, 1], constrained_layout=True
+        )
+    else:
+        fig, ax = plt.subplots(figsize=(7, 4.5), constrained_layout=True)
+        ax_h = None
+
     draw_environment(ax, setup_data["environment"])
     corners = [agent.position for agent in agents]
     corners += [agent.goal_position for agent in agents]
@@ -43,10 +65,11 @@ def animate(setup_file):
 
     # h is the whole point: positive is safe, negative is not, and the zero
     # line is the boundary of the safe set.
-    ax_h.axhline(0.0, color="k", lw=0.8)
-    ax_h.set_xlim(0.0, simulation["duration"])
-    ax_h.set_xlabel("t [s]")
-    ax_h.set_ylabel("h")
+    if ax_h is not None:
+        ax_h.axhline(0.0, color="k", lw=0.8)
+        ax_h.set_xlim(0.0, simulation["duration"])
+        ax_h.set_xlabel("t [s]")
+        ax_h.set_ylabel("h")
 
     trails = {}
     markers = {}
@@ -59,8 +82,9 @@ def animate(setup_file):
         (trails[agent.name],) = ax.plot([], [], "-", lw=1, color=color)
         ax.plot(*agent.goal_position, "x", color=color)
         tracks[agent.name] = [agent.position.copy()]
-        (curves[agent.name],) = ax_h.plot([], [], "-", lw=1.2, color=color)
-        values[agent.name] = [agent.h()]
+        if ax_h is not None:
+            (curves[agent.name],) = ax_h.plot([], [], "-", lw=1.2, color=color)
+            values[agent.name] = [agent.h()]
     ax.legend(loc="best")
     time_text = ax.text(0.98, 0.04, "", transform=ax.transAxes, ha="right")
 
@@ -83,10 +107,12 @@ def animate(setup_file):
             track = np.array(tracks[agent.name])
             trails[agent.name].set_data(track[:, 0], track[:, 1])
             markers[agent.name].set_data([agent.position[0]], [agent.position[1]])
-            values[agent.name].append(agent.h())
-            curves[agent.name].set_data(times, values[agent.name])
-        ax_h.relim()
-        ax_h.autoscale_view(scalex=False)
+            if ax_h is not None:
+                values[agent.name].append(agent.h())
+                curves[agent.name].set_data(times, values[agent.name])
+        if ax_h is not None:
+            ax_h.relim()
+            ax_h.autoscale_view(scalex=False)
         time_text.set_text(f"t = {t:.1f} s")
         plt.pause(steps_per_frame * dt)
 
