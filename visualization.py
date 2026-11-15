@@ -3,7 +3,7 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 
-from run_simulation import DEFAULT_SETUP, nominal_velocity
+from run_simulation import DEFAULT_SETUP, filtered_velocity
 from setup import initialize_simulation
 
 
@@ -42,6 +42,7 @@ def animate(setup_file):
     dt = simulation["dt"]
     fps = simulation["fps"]
     gain = simulation["gain"]
+    gamma = simulation["gamma"]
 
     show_barriers = simulation.get("show_barriers", True)
     if show_barriers:
@@ -99,7 +100,8 @@ def animate(setup_file):
     for _ in range(frames):
         for _ in range(steps_per_frame):
             for agent in agents:
-                agent.step(nominal_velocity(agent, gain), dt)
+                velocity, _ = filtered_velocity(agent, gain, gamma)
+                agent.step(velocity, dt)
                 tracks[agent.name].append(agent.position.copy())
         t += steps_per_frame * dt
         times.append(t)

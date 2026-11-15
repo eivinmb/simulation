@@ -5,6 +5,7 @@
     "duration": 20.0,
     "fps": 30,
     "gain": 1.0,
+    "gamma": 100.0,
     "show_barriers": true
   },
   "agents": ["hare", "turtle"],
@@ -25,3 +26,4 @@
     "water": {"shape": "strip", "axis": "x", "center": 0, "width": 4, "color": "tab:blue"}
   }
 }
+
