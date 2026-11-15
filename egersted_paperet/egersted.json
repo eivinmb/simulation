@@ -11,13 +11,13 @@
     "initial_position": [5, 0],
     "initial_velocity": 2,
     "goal_position": [-5, 0],
-    "barrier": "water_strip"
+    "barrier": "(x - water_center)**2 - (water_width/2)**2"
   },
   "turtle": {
     "initial_position": [-5, -2],
     "initial_velocity": 1,
     "goal_position": [5, -2],
-    "barrier": "none"
+    "barrier": "0"
   },
   "environment": {
     "default": "ground",

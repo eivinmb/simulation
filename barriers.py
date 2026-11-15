@@ -1,53 +1,55 @@
 import numpy as np
+import sympy
+
+COORDINATES = ("x", "y")
 
 
-def water_strip(water):
-    # The hare is safe on land and unsafe in the water. The strip is centred on
-    # water["center"] with width water["width"], so h is the squared distance
-    # from the centre line minus the squared half width: the paper's
-    # h_r = p_x^2 - (l_R/2)^2. Positive on land, negative in the water, and
-    # independent of y.
-    center = water["center"]
-    half_width = water["width"] / 2
+def environment_constants(environment, prefix=""):
+    # Flatten the environment into names an expression can use, so the geometry
+    # has one home: {"water": {"center": 0, "width": 4}} becomes water_center
+    # and water_width.
+    constants = {}
+    for key, value in environment.items():
+        name = f"{prefix}{key}"
+        if isinstance(value, dict):
+            constants.update(environment_constants(value, prefix=f"{name}_"))
+        elif isinstance(value, (int, float)):
+            constants[name] = float(value)
+    return constants
+
+
+def make_barrier(expression, environment):
+    # A barrier is written in the setup file as an expression in the position
+    # coordinates plus any constant from the environment, and differentiated
+    # symbolically. A new barrier therefore needs no code at all:
+    #
+    #   "(x - water_center)**2 - (water_width/2)**2"   the paper's hare
+    #   "0"                                            the identity CBF
+    #
+    # Safety is h >= 0, so the expression is positive where the agent is safe.
+    symbols = sympy.symbols(COORDINATES)
+    expr = sympy.sympify(str(expression)).subs(environment_constants(environment))
+
+    unknown = sorted(str(s) for s in expr.free_symbols if s not in symbols)
+    if unknown:
+        raise ValueError(f"barrier {expression!r} uses unknown names {unknown}")
+
+    h_func = sympy.lambdify(symbols, expr, "numpy")
+    grad_func = sympy.lambdify(symbols, [sympy.diff(expr, s) for s in symbols], "numpy")
 
     def h(position):
-        return (position[0] - center) ** 2 - half_width**2
+        return float(h_func(*position))
 
     def grad_h(position):
-        gradient = np.zeros_like(position)
-        gradient[0] = 2 * (position[0] - center)
-        return gradient
+        return np.array(grad_func(*position), dtype=float)
 
     return h, grad_h
-
-
-def no_barrier(water):
-    # The amphibious agent is safe everywhere: the paper's identity CBF. Note
-    # that it is zero and not one. Safety requires non-negativity rather than
-    # positivity, and zero is the identity element for addition, which is the
-    # composition operator the paper settles on.
-    def h(position):
-        return 0.0
-
-    def grad_h(position):
-        return np.zeros_like(position)
-
-    return h, grad_h
-
-
-BARRIERS = {"water_strip": water_strip, "none": no_barrier}
-
-
-def make_barrier(name, environment):
-    if name not in BARRIERS:
-        raise ValueError(f"unknown barrier {name!r}, expected one of {list(BARRIERS)}")
-    return BARRIERS[name](environment["water"])
 
 
 def gradient_error(h, grad_h, position, eps=1e-6):
-    # Central difference against the analytic gradient. A sign slip in a
-    # gradient gives a simulation that looks plausible and proves nothing, so
-    # every barrier is checked before it is used.
+    # Central difference against the symbolic gradient. The derivative itself
+    # is exact; this checks that substitution and lambdify did what they look
+    # like they did.
     position = np.asarray(position, dtype=float)
     numerical = np.zeros_like(position)
     for i in range(position.size):
@@ -66,8 +68,10 @@ if __name__ == "__main__":
         setup_data = json.load(f)
 
     probes = [[-5.0, 0.0], [-2.0, 0.0], [0.0, 0.0], [2.0, 0.0], [3.0, 1.0]]
+    print("constants", environment_constants(setup_data["environment"]))
     for name in setup_data["agents"]:
-        h, grad_h = make_barrier(setup_data[name]["barrier"], setup_data["environment"])
+        expression = setup_data[name]["barrier"]
+        h, grad_h = make_barrier(expression, setup_data["environment"])
         worst = max(gradient_error(h, grad_h, p) for p in probes)
-        values = "  ".join(f"h({p[0]:+.0f})={h(np.array(p)):+6.1f}" for p in probes)
-        print(f"{name:7} {values}   max gradient error {worst:.2e}")
+        values = "  ".join(f"h({p[0]:+.0f})={h(p):+6.1f}" for p in probes)
+        print(f"{name:7} {values}   max gradient error {worst:.1e}   {expression!r}")
