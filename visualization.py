@@ -37,7 +37,10 @@ def draw_environment(ax, environment):
             draw_region(ax, region)
 
 
-def animate(setup_file):
+def make_scene(setup_file):
+    # One run, drawn into a figure, plus the function that advances it by a
+    # frame. Returned rather than displayed, so watching it and recording it
+    # are the same simulation and the same picture.
     agents, setup_data = initialize_simulation(setup_file)
     simulation = setup_data["simulation"]
     dt = simulation["dt"]
@@ -91,21 +94,20 @@ def animate(setup_file):
     time_text = ax.text(0.98, 0.04, "", transform=ax.transAxes, ha="right")
 
     # The physics step is smaller than a frame, so take several steps per frame
-    # and pause for as long as those steps represent. That keeps the animation
-    # close to real time without tying the integration to the screen refresh.
+    # and redraw once. The integration stays independent of the frame rate,
+    # whether the frames go to a screen or to a file.
     steps_per_frame = max(1, round(1.0 / (fps * dt)))
     frames = int(simulation["duration"] / (dt * steps_per_frame))
 
-    t = 0.0
-    times = [t]
-    for _ in range(frames):
+    times = [0.0]
+
+    def update():
         for _ in range(steps_per_frame):
             for agent in agents:
                 velocity, _ = filtered_velocity(agent, gain, gamma)
                 agent.step(velocity, dt)
                 tracks[agent.name].append(agent.position.copy())
-        t += steps_per_frame * dt
-        times.append(t)
+        times.append(times[-1] + steps_per_frame * dt)
         for agent in agents:
             track = np.array(tracks[agent.name])
             trails[agent.name].set_data(track[:, 0], track[:, 1])
@@ -116,9 +118,17 @@ def animate(setup_file):
         if ax_h is not None:
             ax_h.relim()
             ax_h.autoscale_view(scalex=False)
-        time_text.set_text(f"t = {t:.1f} s")
-        plt.pause(steps_per_frame * dt)
+        time_text.set_text(f"t = {times[-1]:.1f} s")
 
+    return fig, update, frames, steps_per_frame * dt
+
+
+def animate(setup_file):
+    # Watch it live. The scene does the work; this only paces it.
+    fig, update, frames, frame_time = make_scene(setup_file)
+    for _ in range(frames):
+        update()
+        plt.pause(frame_time)
     plt.show()
 
 
